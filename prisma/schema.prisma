@@ -1,0 +1,250 @@
+// Prisma Schema for Binger — Aligned to docs/project/01-Modelado-de-Base-de-datos.md
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Módulo 1: Usuarios y Autenticación
+// ─────────────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  username     String   @unique @db.VarChar(30)
+  email        String   @unique @db.VarChar(255)
+  passwordHash String?  @map("password_hash") @db.VarChar(255)
+  displayName  String?  @map("display_name") @db.VarChar(50)
+  bio          String?  @db.VarChar(500)
+  avatarUrl    String?  @map("avatar_url") @db.Text
+  isPrivate    Boolean  @default(false) @map("is_private")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  oauthAccounts  UserOauth[]
+  passwordResets PasswordReset[]
+  followers      Follow[]    @relation("following")
+  following      Follow[]    @relation("follower")
+  watchLogs      WatchLog[]
+  reviews        Review[]
+  watchlist      Watchlist[]
+  likes          Like[]
+  lists          List[]
+
+  @@map("users")
+}
+
+model UserOauth {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  provider       String   @db.VarChar(50)
+  providerUserId String   @map("provider_user_id") @db.VarChar(255)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@map("user_oauth")
+}
+
+model PasswordReset {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash") @db.VarChar(255)
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz
+  usedAt    DateTime? @map("used_at") @db.Timestamptz
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_resets")
+}
+
+model Follow {
+  followerId  String @map("follower_id") @db.Uuid
+  followingId String @map("following_id") @db.Uuid
+
+  // Relations
+  follower  User @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@map("follows")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Módulo 2: Catálogo (Series, Temporadas y Capítulos)
+// ─────────────────────────────────────────────────────────────────
+
+model Series {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  apiSource        String   @default("tvmaze") @map("api_source") @db.VarChar(20)
+  apiId            String?  @unique @map("api_id") @db.VarChar(50)
+  title            String   @db.VarChar(255)
+  originalLanguage String?  @map("original_language") @db.VarChar(10)
+  overview         String?  @db.Text
+  posterUrl        String?  @map("poster_url") @db.Text
+  backdropUrl      String?  @map("backdrop_url") @db.Text
+  status           String?  @db.VarChar(50)
+  firstAirDate     DateTime? @map("first_air_date") @db.Date
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  seasons   Season[]
+  reviews   Review[]
+  watchlist Watchlist[]
+  listItems ListItem[]
+
+  @@index([title])
+  @@map("series")
+}
+
+model Season {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  seriesId     String   @map("series_id") @db.Uuid
+  seasonNumber Int      @map("season_number")
+  title        String?  @db.VarChar(100)
+  overview     String?  @db.Text
+  posterUrl    String?  @map("poster_url") @db.Text
+  episodeCount Int?     @map("episode_count")
+  airDate      DateTime? @map("air_date") @db.Date
+
+  // Relations
+  series   Series    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  episodes Episode[]
+  reviews  Review[]
+
+  @@map("seasons")
+}
+
+model Episode {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  seasonId      String   @map("season_id") @db.Uuid
+  episodeNumber Int      @map("episode_number")
+  title         String   @db.VarChar(255)
+  overview      String?  @db.Text
+  airDate       DateTime? @map("air_date") @db.Date
+  runtime       Int      @default(0)
+
+  // Relations
+  season    Season     @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  watchLogs WatchLog[]
+
+  // Performance index: list episodes of a season in order
+  @@index([seasonId, episodeNumber])
+  @@map("episodes")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Módulo 3: Actividad e Interacción (Estilo Letterboxd)
+// ─────────────────────────────────────────────────────────────────
+
+model WatchLog {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  episodeId String   @map("episode_id") @db.Uuid
+  watchedAt DateTime @default(dbgenerated("CURRENT_DATE")) @map("watched_at") @db.Date
+  isRewatch Boolean  @default(false) @map("is_rewatch")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  episode Episode   @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  reviews Review[]
+
+  // Performance index: user diary calendar and streak calculations
+  @@index([userId, watchedAt])
+  @@map("watch_logs")
+}
+
+model Review {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  seriesId         String   @map("series_id") @db.Uuid
+  seasonId         String?  @map("season_id") @db.Uuid
+  watchLogId       String?  @map("watch_log_id") @db.Uuid
+  rating           Decimal? @db.Decimal(2, 1)
+  content          String?  @db.Text
+  containsSpoilers Boolean  @default(false) @map("contains_spoilers")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  series   Series    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  season   Season?   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  watchLog WatchLog? @relation(fields: [watchLogId], references: [id], onDelete: SetNull)
+  likes    Like[]
+
+  // Performance index: reviews by series/season
+  @@index([seriesId, seasonId])
+  @@map("reviews")
+}
+
+model Watchlist {
+  userId    String   @map("user_id") @db.Uuid
+  seriesId  String   @map("series_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  series Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@id([userId, seriesId])
+  @@map("watchlist")
+}
+
+model Like {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  reviewId  String   @map("review_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, reviewId])
+  @@map("likes")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Módulo 4: Listas Personalizadas
+// ─────────────────────────────────────────────────────────────────
+
+model List {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  name        String   @db.VarChar(100)
+  description String?  @db.VarChar(1000)
+  isPrivate   Boolean  @default(false) @map("is_private")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items ListItem[]
+
+  @@map("lists")
+}
+
+model ListItem {
+  listId    String   @map("list_id") @db.Uuid
+  seriesId  String   @map("series_id") @db.Uuid
+  position  Int
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  list   List   @relation(fields: [listId], references: [id], onDelete: Cascade)
+  series Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@id([listId, seriesId])
+  @@map("list_items")
+}
