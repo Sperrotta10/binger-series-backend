@@ -25,6 +25,9 @@ const envSchema = z.object({
   // CORS
   CORS_ORIGIN: z.string().min(1, 'CORS_ORIGIN is required'),
 
+  // Api Series
+  API_URL_SERIES: z.string().min(1, 'API_URL_SERIES is required'),
+
   // Internal Communication Secret
   INTERNAL_SECRET: z
     .string()
