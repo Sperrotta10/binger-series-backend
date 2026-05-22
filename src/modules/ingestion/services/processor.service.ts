@@ -35,7 +35,7 @@ export class ProcessorService {
       });
 
       // 3b. Upsert Seasons
-      const seasonIdMap = new Map<number, string>(); // TVmaze Season ID -> Internal Season ID
+      const seasonIdMap = new Map<number, string>(); // TVmaze Season Number -> Internal Season ID
 
       for (const s of seasonsData) {
         const mappedSeason = mapTvmazeSeasonToPrisma(s, series.id);
@@ -51,7 +51,7 @@ export class ProcessorService {
           update: mappedSeason,
         });
 
-        seasonIdMap.set(s.id, upsertedSeason.id);
+        seasonIdMap.set(mappedSeason.seasonNumber, upsertedSeason.id);
       }
 
       // 3c. Upsert Episodes
