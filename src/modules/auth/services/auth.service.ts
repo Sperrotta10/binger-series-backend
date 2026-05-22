@@ -6,6 +6,8 @@ import { HttpStatus } from '../../../constants/httpStatus.js';
 import { ErrorCodes } from '../../../constants/errorCodes.js';
 import { generateTokens, verifyRefreshToken } from '../../../utils/jwt.js';
 import { redis } from '../../../config/redis.js';
+import { EmailService } from '../../../shared/services/email.service.js';
+import { env } from '../../../config/index.js';
 import type {
   RegisterInput,
   LoginInput,
@@ -15,12 +17,7 @@ import type {
   UpdateProfileInput,
 } from '../schemas/auth.schema.js';
 
-// Refresh token TTL in seconds (30 days)
-const REFRESH_TOKEN_TTL = 30 * 24 * 60 * 60;
-
 export class AuthService {
-  // ── POST /register ──────────────────────────────────────────
-
   static async registerUser(input: RegisterInput) {
     // 1. Duplicate check
     const existingUser = await AuthRepository.findUserByEmail(input.email);
@@ -73,12 +70,10 @@ export class AuthService {
 
     // 5. Generate session tokens & store refresh in Redis
     const tokens = generateTokens(user.id, user.username);
-    await redis.set(`rt:${user.id}`, tokens.refreshToken, 'EX', REFRESH_TOKEN_TTL);
+    await redis.set(`rt:${user.id}`, tokens.refreshToken, 'EX', env.REFRESH_TOKEN_TTL);
 
     return { user, tokens };
   }
-
-  // ── POST /login ─────────────────────────────────────────────
 
   static async loginUser(input: LoginInput) {
     // 1. Find user
@@ -114,12 +109,10 @@ export class AuthService {
 
     // 4. Generate session tokens & store refresh in Redis
     const tokens = generateTokens(user.id, user.username);
-    await redis.set(`rt:${user.id}`, tokens.refreshToken, 'EX', REFRESH_TOKEN_TTL);
+    await redis.set(`rt:${user.id}`, tokens.refreshToken, 'EX', env.REFRESH_TOKEN_TTL);
 
     return { user, tokens };
   }
-
-  // ── POST /oauth/google ──────────────────────────────────────
 
   static async googleOauth(googlePayload: {
     sub: string;
@@ -137,7 +130,7 @@ export class AuthService {
         throw new AppError('User not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
       }
       const tokens = generateTokens(user.id, user.username);
-      await redis.set(`rt:${user.id}`, tokens.refreshToken, 'EX', REFRESH_TOKEN_TTL);
+      await redis.set(`rt:${user.id}`, tokens.refreshToken, 'EX', env.REFRESH_TOKEN_TTL);
       return { user, tokens, isNewUser: false };
     }
 
@@ -151,7 +144,7 @@ export class AuthService {
         createdAt: now,
       });
       const tokens = generateTokens(existingUser.id, existingUser.username);
-      await redis.set(`rt:${existingUser.id}`, tokens.refreshToken, 'EX', REFRESH_TOKEN_TTL);
+      await redis.set(`rt:${existingUser.id}`, tokens.refreshToken, 'EX', env.REFRESH_TOKEN_TTL);
       return { user: existingUser, tokens, isNewUser: false };
     }
 
@@ -197,12 +190,10 @@ export class AuthService {
     });
 
     const tokens = generateTokens(newUser.id, newUser.username);
-    await redis.set(`rt:${newUser.id}`, tokens.refreshToken, 'EX', REFRESH_TOKEN_TTL);
+    await redis.set(`rt:${newUser.id}`, tokens.refreshToken, 'EX', env.REFRESH_TOKEN_TTL);
 
     return { user: newUser, tokens, isNewUser: true };
   }
-
-  // ── POST /refresh ───────────────────────────────────────────
 
   static async refreshTokens(input: RefreshInput) {
     // 1. Verify signature & expiration
@@ -235,12 +226,10 @@ export class AuthService {
 
     // 4. Rotate tokens
     const tokens = generateTokens(user.id, user.username);
-    await redis.set(`rt:${user.id}`, tokens.refreshToken, 'EX', REFRESH_TOKEN_TTL);
+    await redis.set(`rt:${user.id}`, tokens.refreshToken, 'EX', env.REFRESH_TOKEN_TTL);
 
     return { tokens };
   }
-
-  // ── POST /forgot-password ───────────────────────────────────
 
   static async forgotPassword(input: ForgotPasswordInput) {
     // Always return success to prevent user enumeration
@@ -261,12 +250,14 @@ export class AuthService {
       createdAt: now,
     });
 
-    // TODO: Send email with rawToken via email service in a future sprint
-    // For now, return the token in dev mode for testing
-    return { rawToken };
-  }
+    // Send reset password email asynchronously (production-ready)
+    if (env.NODE_ENV === 'development') {
+      return { rawToken };
+    }
 
-  // ── POST /reset-password ────────────────────────────────────
+    await EmailService.sendPasswordResetEmail(user.email, rawToken);
+    return;
+  }
 
   static async resetPassword(input: ResetPasswordInput) {
     // 1. Hash the incoming token and look it up
@@ -297,8 +288,6 @@ export class AuthService {
     await redis.del(`rt:${resetRecord.userId}`);
   }
 
-  // ── POST /logout ────────────────────────────────────────────
-
   static async logoutUser(userId: string, accessToken: string) {
     // 1. Delete refresh token from Redis
     await redis.del(`rt:${userId}`);
@@ -307,8 +296,6 @@ export class AuthService {
     await redis.set(`bl:${accessToken}`, '1', 'EX', 15 * 60);
   }
 
-  // ── GET /profile/me ─────────────────────────────────────────
-
   static async getProfile(userId: string) {
     const user = await AuthRepository.findUserById(userId);
     if (!user) {
@@ -316,8 +303,6 @@ export class AuthService {
     }
     return user;
   }
-
-  // ── PATCH /profile/update ────────────────────────────────────
 
   static async updateProfile(userId: string, input: UpdateProfileInput) {
     // Check username uniqueness if being updated

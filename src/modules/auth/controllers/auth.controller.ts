@@ -5,6 +5,7 @@ import { ApiResponse } from '../../../utils/apiResponse.js';
 import { HttpStatus } from '../../../constants/httpStatus.js';
 import { ErrorCodes } from '../../../constants/errorCodes.js';
 import { AppError } from '../../../middlewares/errorHandler.js';
+import { env } from '../../../config/index.js';
 import { AuthService } from '../services/auth.service.js';
 import {
   registerSchema,
@@ -102,7 +103,15 @@ export const refresh = catchAsync(async (req: Request, res: Response) => {
 
 export const forgotPassword = catchAsync(async (req: Request, res: Response) => {
   const input = forgotPasswordSchema.parse(req.body);
-  await AuthService.forgotPassword(input);
+  const data = await AuthService.forgotPassword(input);
+
+  if (env.NODE_ENV === 'development') {
+    return ApiResponse.success(
+      res,
+      { rawToken: data?.rawToken },
+      'If the email exists, a password reset link has been sent.',
+    );
+  }
 
   // Always return success to prevent user enumeration
   return ApiResponse.success(
