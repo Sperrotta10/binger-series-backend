@@ -12,10 +12,13 @@
 - Implementación del endpoint interno `POST /api/v1/ingestion/trigger` que permite al Catalog Service encolar un Job de importación de serie on-demand vía BullMQ.
 - Implementación del endpoint interno `POST /api/v1/ingestion/cron/daily-sync` que ejecuta la sincronización diaria de series en emisión activa (`status = 'Running'`).
 - Creación del middleware de seguridad interna `internalAuth` que valida la cabecera `X-Internal-Secret` contra la variable de entorno `INTERNAL_SECRET` para proteger ambos endpoints de accesos externos.
-- Configuración de un Worker de BullMQ que consume la cola `ingestion:series:import` y procesa las importaciones en segundo plano con concurrencia configurable (5 jobs simultáneos).
+- Configuración de un Worker de BullMQ que consume la cola de importaciones (corrigiendo el nombre de la cola para no usar `:` y cumplir con los requisitos de BullMQ) y procesa jobs en segundo plano.
 - Implementación del `ProcessorService` que descarga la serie completa (con temporadas y episodios embebidos) desde TVmaze y la persiste atómicamente en PostgreSQL usando `prisma.$transaction`.
 - Implementación del cliente HTTP `tvmaze.client.ts` con manejo de Rate Limiting (HTTP 429 + `Retry-After`) y estrategia de Exponential Backoff (5 reintentos: 5s → 25s → 125s → ~10min).
 - Creación de mappers tipados (`mapper.ts`) para transformar el JSON crudo de TVmaze al esquema de Prisma, incluyendo sanitización de HTML en summaries.
+- Integración de IA con `@google/generative-ai` (`gemini.service.ts`) para enriquecimiento de metadata (traducción de sinopsis, generación de descripciones cortas).
+- Implementación de un mecanismo de rotación de API Keys para Gemini, configurado mediante una lista separada por comas en las variables de entorno, rotando la key cada 10 peticiones para evadir límites de Rate Limit (RPM 15).
+- Creación de un script utilitario de pruebas (`src/test/reingest-all.ts`) para disparar la re-ingesta y actualización de todas las series existentes en la base de datos.
 - Tipado estricto de extremo a extremo con interfaces dedicadas (`TvmazeShow`, `TvmazeSeason`, `TvmazeEpisode`, `TvmazeNetwork`, `TvmazeWebChannel`, `TvmazeCountry`). Cero uso de `any` en el módulo.
 - Implementación de la lógica de Daily Sync que consulta el endpoint `/updates/shows` de TVmaze, compara timestamps con los `updatedAt` locales y solo encola las series que realmente cambiaron.
 - Creación del workflow de GitHub Actions (`.github/workflows/daily-sync.yml`) para disparar el cron de sincronización diaria automáticamente a las 03:00 AM UTC, con opción de ejecución manual (`workflow_dispatch`).
@@ -33,17 +36,21 @@
   - `src/modules/ingestion/services/queue.service.ts`
   - `src/modules/ingestion/services/processor.service.ts`
   - `src/modules/ingestion/services/worker.service.ts`
+  - `src/modules/ingestion/services/gemini.service.ts`
   - `src/modules/ingestion/controllers/ingestion.controller.ts`
   - `src/modules/ingestion/routes/ingestion.routes.ts`
   - `src/middlewares/internalAuth.ts`
+  - `src/test/reingest-all.ts`
   - `.github/workflows/daily-sync.yml`
 - **Archivos modificados:**
   - `src/app.ts` — Montaje del router de ingestion.
   - `src/server.ts` — Importación dinámica del Worker de BullMQ.
+  - `src/config/env.ts` — Configuración para la variable `GEMINI_API_KEYS`.
   - `src/constants/httpStatus.ts` — Adición de `ACCEPTED: 202`.
   - `prisma/schema.prisma` — Adición del campo `updatedAt` al modelo `Series`.
 - **Dependencias nuevas:**
   - `bullmq` (v5.76.11) — Gestor de colas basado en Redis para procesamiento en segundo plano.
+  - `@google/generative-ai` — SDK de Gemini para integración con LLM.
 - **Consideraciones de base de datos:**
   - Se añadió el campo `updated_at` (con `@updatedAt`) al modelo `Series` para rastrear la última sincronización y poder comparar con los timestamps de TVmaze.
   - Todas las inserciones de series, temporadas y episodios se ejecutan dentro de `prisma.$transaction` para garantizar atomicidad. Si falla la inserción de un episodio, se aplica rollback completo.
