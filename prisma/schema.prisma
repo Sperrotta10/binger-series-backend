@@ -95,6 +95,7 @@ model Series {
   status           String?   @db.VarChar(50)
   firstAirDate     DateTime? @map("first_air_date") @db.Date
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
   genres           String[]  @default([])
 
   // Relations
@@ -122,6 +123,7 @@ model Season {
   episodes Episode[]
   reviews  Review[]
 
+  @@unique([seriesId, seasonNumber])
   @@map("seasons")
 }
 
@@ -140,6 +142,7 @@ model Episode {
 
   // Performance index: list episodes of a season in order
   @@index([seasonId, episodeNumber])
+  @@unique([seasonId, episodeNumber])
   @@map("episodes")
 }
 
