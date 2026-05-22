@@ -14,7 +14,8 @@ export function mapTvmazeShowToPrisma(show: TvmazeShow) {
     title: show.name || 'Unknown Title',
     originalLanguage: show.language ? show.language.substring(0, 10) : null,
     overview: stripHtml(show.summary),
-    posterUrl: show.image?.original || show.image?.medium || null,
+    posterUrl: show.image?.original || null,
+    posterMediumUrl: show.image?.medium || null,
     backdropUrl: show.image?.original || null, // TVmaze doesn't have reliable backdrops natively without external IDs, fallback to original poster or null
     status: show.status || null,
     firstAirDate: show.premiered ? new Date(show.premiered) : null,
@@ -27,9 +28,10 @@ export function mapTvmazeSeasonToPrisma(season: TvmazeSeason, seriesId: string) 
   return {
     seriesId,
     seasonNumber: season.number || 0,
-    title: season.name || null,
+    title: season.name || `Season ${season.number || 0}`,
     overview: stripHtml(season.summary),
-    posterUrl: season.image?.original || season.image?.medium || null,
+    posterUrl: season.image?.original || null,
+    posterMediumUrl: season.image?.medium || null,
     episodeCount: season.episodeOrder || null,
     airDate: season.premiereDate ? new Date(season.premiereDate) : null,
   };
@@ -42,6 +44,8 @@ export function mapTvmazeEpisodeToPrisma(episode: TvmazeEpisode, seasonId: strin
     episodeNumber: episode.number || 0,
     title: episode.name || `Episode ${episode.number}`,
     overview: stripHtml(episode.summary),
+    imageUrl: episode.image?.original || null,
+    imageMediumUrl: episode.image?.medium || null,
     airDate: episode.airstamp
       ? new Date(episode.airstamp)
       : episode.airdate
