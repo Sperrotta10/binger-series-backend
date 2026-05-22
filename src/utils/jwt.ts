@@ -14,11 +14,11 @@ export const generateTokens = (userId: string, username: string) => {
   const accessToken = jwt.sign(
     { id: userId, username } as AccessTokenPayload,
     env.ACCESS_TOKEN_SECRET,
-    { expiresIn: '15m' },
+    { expiresIn: env.ACCESS_TOKEN_TTL },
   );
 
   const refreshToken = jwt.sign({ id: userId } as RefreshTokenPayload, env.REFRESH_TOKEN_SECRET, {
-    expiresIn: '30d',
+    expiresIn: env.REFRESH_TOKEN_TTL,
   });
 
   return { accessToken, refreshToken };

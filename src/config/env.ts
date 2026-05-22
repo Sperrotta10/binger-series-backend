@@ -19,9 +19,17 @@ const envSchema = z.object({
   // JWT Secrets
   ACCESS_TOKEN_SECRET: z.string().min(16, 'ACCESS_TOKEN_SECRET must be at least 16 characters'),
   REFRESH_TOKEN_SECRET: z.string().min(16, 'REFRESH_TOKEN_SECRET must be at least 16 characters'),
+  ACCESS_TOKEN_TTL: z.coerce.number().int().positive().default(900), // 15 minutes in seconds
+  REFRESH_TOKEN_TTL: z.coerce.number().int().positive().default(2592000), // 30 days in seconds
 
   // CORS
   CORS_ORIGIN: z.string().min(1, 'CORS_ORIGIN is required'),
+
+  // SMTP Mail Configuration
+  SMTP_HOST: z.string().min(1, 'SMTP_HOST is required'),
+  SMTP_PORT: z.coerce.number().int().positive().default(587),
+  SMTP_USER: z.string().min(1, 'SMTP_USER is required'),
+  SMTP_PASS: z.string().min(1, 'SMTP_PASS is required'),
 });
 
 export type Env = z.infer<typeof envSchema>;
