@@ -8,6 +8,7 @@ import { errorHandler } from './middlewares/errorHandler.js';
 import { notFoundHandler } from './middlewares/notFound.js';
 import { ApiResponse } from './utils/apiResponse.js';
 import { authRouter } from './modules/auth/routes/auth.routes.js';
+import { catalogRouter } from './modules/catalog/routes/catalog.routes.js';
 
 const app: Express = express();
 
@@ -40,7 +41,7 @@ app.get('/api/v1/health', (_req: Request, res: Response) => {
 
 // 3. API Routes Mount Point (Modules will be added here in future sprints)
 app.use('/api/v1/auth', authRouter);
-// app.use('/api/v1/catalog', catalogRouter);
+app.use('/api/v1/catalog', catalogRouter);
 
 // 4. Error & 404 Handlers (Must be at the very end)
 app.use(notFoundHandler);
