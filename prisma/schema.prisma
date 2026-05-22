@@ -91,6 +91,7 @@ model Series {
   originalLanguage String?   @map("original_language") @db.VarChar(10)
   overview         String?   @db.Text
   posterUrl        String?   @map("poster_url") @db.Text
+  posterMediumUrl  String?   @map("poster_medium_url") @db.Text
   backdropUrl      String?   @map("backdrop_url") @db.Text
   status           String?   @db.VarChar(50)
   firstAirDate     DateTime? @map("first_air_date") @db.Date
@@ -114,7 +115,8 @@ model Season {
   seasonNumber Int       @map("season_number")
   title        String?   @db.VarChar(100)
   overview     String?   @db.Text
-  posterUrl    String?   @map("poster_url") @db.Text
+  posterUrl        String?   @map("poster_url") @db.Text
+  posterMediumUrl  String?   @map("poster_medium_url") @db.Text
   episodeCount Int?      @map("episode_count")
   airDate      DateTime? @map("air_date") @db.Date
 
@@ -133,6 +135,8 @@ model Episode {
   episodeNumber Int       @map("episode_number")
   title         String    @db.VarChar(255)
   overview      String?   @db.Text
+  imageUrl      String?   @map("image_url") @db.Text
+  imageMediumUrl String?  @map("image_medium_url") @db.Text
   airDate       DateTime? @map("air_date") @db.Date
   runtime       Int       @default(0)
 
