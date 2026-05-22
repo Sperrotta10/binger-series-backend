@@ -1,0 +1,23 @@
+name: Daily Catalog Sync
+
+on:
+  schedule:
+    # Se ejecuta todos los días a las 03:00 AM (UTC)
+    - cron: '0 3 * * *'
+  workflow_dispatch: # Permite ejecutar el Action manualmente desde la interfaz de GitHub para pruebas
+
+jobs:
+  trigger-sync:
+    name: Trigger Backend Ingestion Sync
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send POST Request to Binger API
+        run: |
+          # Utilizamos curl para hacer la petición HTTP POST.
+          # La flag --fail asegura que si el backend devuelve un error (ej. 401, 500), 
+          # el step falle y GitHub Actions marque el pipeline en rojo.
+          curl -X POST "${{ secrets.API_BASE_URL }}/api/v1/ingestion/cron/daily-sync" \
+            -H "Content-Type: application/json" \
+            -H "X-Internal-Secret: ${{ secrets.INTERNAL_SECRET }}" \
+            --fail
