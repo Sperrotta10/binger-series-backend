@@ -26,15 +26,16 @@ model User {
   updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations
-  oauthAccounts  UserOauth[]
-  passwordResets PasswordReset[]
-  followers      Follow[]        @relation("following")
-  following      Follow[]        @relation("follower")
-  watchLogs      WatchLog[]
-  reviews        Review[]
-  watchlist      Watchlist[]
-  likes          Like[]
-  lists          List[]
+  oauthAccounts   UserOauth[]
+  passwordResets  PasswordReset[]
+  followers       Follow[]              @relation("following")
+  following       Follow[]              @relation("follower")
+  episodeProgress UserEpisodeProgress[]
+  seriesStatuses  UserSeriesStatus[]
+  reviews         Review[]
+  watchlist       Watchlist[]
+  likes           Like[]
+  lists           List[]
 
   @@map("users")
 }
@@ -100,53 +101,56 @@ model Series {
   genres           String[]  @default([])
 
   // Relations
-  seasons   Season[]
-  reviews   Review[]
-  watchlist Watchlist[]
-  listItems ListItem[]
+  seasons         Season[]
+  reviews         Review[]
+  watchlist       Watchlist[]
+  listItems       ListItem[]
+  userStatuses    UserSeriesStatus[]
+  episodeProgress UserEpisodeProgress[]
 
   @@index([title])
   @@map("series")
 }
 
 model Season {
-  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  seriesId     String    @map("series_id") @db.Uuid
-  seasonNumber Int       @map("season_number")
-  title        String?   @db.VarChar(100)
-  overview     String?   @db.Text
-  posterUrl        String?   @map("poster_url") @db.Text
-  posterMediumUrl  String?   @map("poster_medium_url") @db.Text
-  episodeCount Int?      @map("episode_count")
-  airDate      DateTime? @map("air_date") @db.Date
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  seriesId        String    @map("series_id") @db.Uuid
+  seasonNumber    Int       @map("season_number")
+  title           String?   @db.VarChar(100)
+  overview        String?   @db.Text
+  posterUrl       String?   @map("poster_url") @db.Text
+  posterMediumUrl String?   @map("poster_medium_url") @db.Text
+  episodeCount    Int?      @map("episode_count")
+  airDate         DateTime? @map("air_date") @db.Date
 
   // Relations
-  series   Series    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
-  episodes Episode[]
-  reviews  Review[]
+  series          Series                @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  episodes        Episode[]
+  reviews         Review[]
+  episodeProgress UserEpisodeProgress[]
 
   @@unique([seriesId, seasonNumber])
   @@map("seasons")
 }
 
 model Episode {
-  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  seasonId      String    @map("season_id") @db.Uuid
-  episodeNumber Int       @map("episode_number")
-  title         String    @db.VarChar(255)
-  overview      String?   @db.Text
-  imageUrl      String?   @map("image_url") @db.Text
-  imageMediumUrl String?  @map("image_medium_url") @db.Text
-  airDate       DateTime? @map("air_date") @db.Date
-  runtime       Int       @default(0)
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  seasonId       String    @map("season_id") @db.Uuid
+  episodeNumber  Int       @map("episode_number")
+  title          String    @db.VarChar(255)
+  overview       String?   @db.Text
+  imageUrl       String?   @map("image_url") @db.Text
+  imageMediumUrl String?   @map("image_medium_url") @db.Text
+  airDate        DateTime? @map("air_date") @db.Date
+  runtime        Int       @default(0)
 
   // Relations
-  season    Season     @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  watchLogs WatchLog[]
+  season       Season                @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  userProgress UserEpisodeProgress[]
 
+  @@unique([seasonId, episodeNumber])
   // Performance index: list episodes of a season in order
   @@index([seasonId, episodeNumber])
-  @@unique([seasonId, episodeNumber])
   @@map("episodes")
 }
 
@@ -154,42 +158,78 @@ model Episode {
 // Módulo 3: Actividad e Interacción (Estilo Letterboxd)
 // ─────────────────────────────────────────────────────────────────
 
-model WatchLog {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
-  episodeId String   @map("episode_id") @db.Uuid
-  watchedAt DateTime @default(dbgenerated("CURRENT_DATE")) @map("watched_at") @db.Date
-  isRewatch Boolean  @default(false) @map("is_rewatch")
+enum SeriesStatus {
+  WATCHING
+  PLAN_TO_WATCH
+  COMPLETED
+  DROPPED
+  ON_HOLD
+}
+
+model UserEpisodeProgress {
+  id        String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String @map("user_id") @db.Uuid
+  episodeId String @map("episode_id") @db.Uuid
+  seasonId  String @map("season_id") @db.Uuid
+  seriesId  String @map("series_id") @db.Uuid
+
+  isWatched    Boolean  @default(true) @map("is_watched")
+  rewatchCount Int      @default(0) @map("rewatch_count")
+  watchedAt    DateTime @default(now()) @map("watched_at") @db.Timestamptz
+
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   episode Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  season  Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  series  Series   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
   reviews Review[]
 
-  // Performance index: user diary calendar and streak calculations
-  @@index([userId, watchedAt])
-  @@map("watch_logs")
+  @@unique([userId, episodeId])
+  @@index([userId, seriesId])
+  @@index([userId, seasonId])
+  @@map("user_episode_progress")
+}
+
+model UserSeriesStatus {
+  id       String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId   String @map("user_id") @db.Uuid
+  seriesId String @map("series_id") @db.Uuid
+
+  status SeriesStatus @default(WATCHING)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  series Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, seriesId])
+  @@index([userId, status])
+  @@map("user_series_statuses")
 }
 
 model Review {
-  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId           String   @map("user_id") @db.Uuid
-  seriesId         String   @map("series_id") @db.Uuid
-  seasonId         String?  @map("season_id") @db.Uuid
-  watchLogId       String?  @map("watch_log_id") @db.Uuid
-  rating           Decimal? @db.Decimal(2, 1)
-  content          String?  @db.Text
-  containsSpoilers Boolean  @default(false) @map("contains_spoilers")
-  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String   @map("user_id") @db.Uuid
+  seriesId          String   @map("series_id") @db.Uuid
+  seasonId          String?  @map("season_id") @db.Uuid
+  episodeProgressId String?  @map("episode_progress_id") @db.Uuid
+  rating            Decimal? @db.Decimal(2, 1)
+  content           String?  @db.Text
+  containsSpoilers  Boolean  @default(false) @map("contains_spoilers")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  series   Series    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
-  season   Season?   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  watchLog WatchLog? @relation(fields: [watchLogId], references: [id], onDelete: SetNull)
-  likes    Like[]
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  series          Series               @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  season          Season?              @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  episodeProgress UserEpisodeProgress? @relation(fields: [episodeProgressId], references: [id], onDelete: SetNull)
+  likes           Like[]
 
   // Performance index: reviews by series/season
   @@index([seriesId, seasonId])
