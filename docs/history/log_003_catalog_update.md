@@ -32,6 +32,5 @@
 ## 🚀 ¿Qué queda pendiente para la siguiente sesión? (Next Steps)
 
 1. [ X ] Implementar Ingestion Worker para procesar datos de series al crear/actualizar.
-2. [ ] Añadir endpoints de watchlist protegidos por autenticación.
-3. [ ] Generar documentación OpenAPI para los nuevos endpoints.
-4. [ ] Añadir pruebas unitarias y de integración para los servicios modificados.
+2. [ ] Añadir pruebas unitarias y de integración para los servicios modificados.
+3. [ X ] Implementar modulo de ingestion worker.
