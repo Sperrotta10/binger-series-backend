@@ -147,6 +147,7 @@ model Episode {
   // Relations
   season       Season                @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   userProgress UserEpisodeProgress[]
+  reviews      Review[]
 
   @@unique([seasonId, episodeNumber])
   // Performance index: list episodes of a season in order
@@ -217,6 +218,7 @@ model Review {
   userId            String   @map("user_id") @db.Uuid
   seriesId          String   @map("series_id") @db.Uuid
   seasonId          String?  @map("season_id") @db.Uuid
+  episodeId         String?  @map("episode_id") @db.Uuid
   episodeProgressId String?  @map("episode_progress_id") @db.Uuid
   rating            Decimal? @db.Decimal(2, 1)
   content           String?  @db.Text
@@ -228,11 +230,12 @@ model Review {
   user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   series          Series               @relation(fields: [seriesId], references: [id], onDelete: Cascade)
   season          Season?              @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  episode         Episode?             @relation(fields: [episodeId], references: [id], onDelete: Cascade)
   episodeProgress UserEpisodeProgress? @relation(fields: [episodeProgressId], references: [id], onDelete: SetNull)
   likes           Like[]
 
-  // Performance index: reviews by series/season
-  @@index([seriesId, seasonId])
+  // Performance index: reviews by series/season/episode
+  @@index([seriesId, seasonId, episodeId])
   @@map("reviews")
 }
 
