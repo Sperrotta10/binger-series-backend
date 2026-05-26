@@ -127,7 +127,11 @@ export class TrackingService {
   static async removeFromWatchlist(userId: string, seriesId: string) {
     const existing = await TrackingRepository.findWatchlistEntry(userId, seriesId);
     if (!existing) {
-      throw new AppError('Series not found in watchlist', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
+      throw new AppError(
+        'Series not found in watchlist',
+        HttpStatus.NOT_FOUND,
+        ErrorCodes.NOT_FOUND,
+      );
     }
     await TrackingRepository.deleteWatchlistEntry(userId, seriesId);
     return { action: 'removed', series_id: seriesId };
