@@ -41,7 +41,7 @@
 ## 🚀 ¿Qué queda pendiente para la siguiente sesión? (Next Steps)
 
 1. [ X ] Montar el router de activity en `src/app.ts` si aún no está hecho.
-2. [ ] Implementar endpoint para obtener el diary/watchlog completo del usuario con paginación.
-3. [ ] Implementar endpoint para obtener reviews de una serie específica (para el catálogo).
+2. [ X ] Implementar endpoint para obtener el diary/watchlog completo del usuario con paginación.
+3. [ X ] Implementar endpoint para obtener reviews de una serie específica (para el catálogo).
 4. [ ] Implementar pruebas unitarias para `ActivityService` y `ActivityRepository`.
 5. [ ] Implementar pruebas de integración E2E para los endpoints de activity.

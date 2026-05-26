@@ -120,6 +120,58 @@ export class ActivityService {
 
   // --- Watch Log and Reviews additions ---
 
+  static async getUserWatchLog(userId: string, page: number, limit: number) {
+    const total = await ActivityRepository.countUserWatchLog(userId);
+    const logs = await ActivityRepository.findUserWatchLog(userId, page, limit);
+
+    return {
+      data: logs.map((log) => ({
+        log_id: log.id,
+        episode_id: log.episodeId,
+        series_title: log.episode.season.series.title,
+        season_number: log.episode.season.seasonNumber,
+        episode_number: log.episode.episodeNumber,
+        episode_title: log.episode.title,
+        watched_at: log.watchedAt,
+        is_rewatch: log.rewatchCount > 0,
+        rewatch_count: log.rewatchCount,
+      })),
+      meta: {
+        total,
+        page,
+        limit,
+        total_pages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  static async getSeriesReviews(seriesId: string, page: number, limit: number) {
+    const total = await ActivityRepository.countReviewsBySeries(seriesId);
+    const reviews = await ActivityRepository.findReviewsBySeries(seriesId, page, limit);
+
+    return {
+      data: reviews.map((review) => ({
+        review_id: review.id,
+        user: {
+          id: review.user.id,
+          username: review.user.username,
+          profile_image: review.user.avatarUrl,
+        },
+        rating: Number(review.rating),
+        content: review.content,
+        contains_spoilers: review.containsSpoilers,
+        created_at: review.createdAt,
+        updated_at: review.updatedAt,
+      })),
+      meta: {
+        total,
+        page,
+        limit,
+        total_pages: Math.ceil(total / limit),
+      },
+    };
+  }
+
   static async updateWatchLog(
     userId: string,
     logId: string,

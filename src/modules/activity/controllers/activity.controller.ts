@@ -8,6 +8,7 @@ import {
   updateReviewSchema,
   watchlistToggleSchema,
   idParamSchema,
+  paginationQuerySchema,
 } from '../schemas/activity.schema.js';
 
 export const watchEpisode = catchAsync(async (req: Request, res: Response) => {
@@ -32,6 +33,18 @@ export const unwatchEpisode = catchAsync(async (req: Request, res: Response) => 
   return res.status(200).json({
     status: 'success',
     message: 'Diary log entry removed successfully.',
+  });
+});
+
+export const getUserWatchLog = catchAsync(async (req: Request, res: Response) => {
+  const { page, limit } = paginationQuerySchema.parse(req.query);
+  const userId = req.user!.id;
+
+  const result = await ActivityService.getUserWatchLog(userId, page, limit);
+
+  return res.status(200).json({
+    status: 'success',
+    ...result,
   });
 });
 
@@ -82,6 +95,18 @@ export const deleteReview = catchAsync(async (req: Request, res: Response) => {
   return res.status(200).json({
     status: 'success',
     message: 'Review deleted successfully. Show metrics are being updated in background.',
+  });
+});
+
+export const getSeriesReviews = catchAsync(async (req: Request, res: Response) => {
+  const seriesId = idParamSchema.parse(req.params.seriesId);
+  const { page, limit } = paginationQuerySchema.parse(req.query);
+
+  const result = await ActivityService.getSeriesReviews(seriesId, page, limit);
+
+  return res.status(200).json({
+    status: 'success',
+    ...result,
   });
 });
 

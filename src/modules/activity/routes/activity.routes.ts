@@ -9,14 +9,20 @@ import {
   deleteReview,
   toggleWatchlist,
   updateWatchLog,
+  getUserWatchLog,
+  getSeriesReviews,
 } from '../controllers/activity.controller.js';
 
 const router: Router = Router();
 
-// All routes in the activity module require authentication
+// Public routes
+router.get('/reviews/series/:seriesId', getSeriesReviews);
+
+// All routes below require authentication
 router.use(authenticate);
 
 // Watch Log
+router.get('/watchlog', getUserWatchLog);
 router.post('/watch', watchEpisode);
 router.delete('/watch/:logId', unwatchEpisode);
 router.put('/watch/:logId', updateWatchLog);

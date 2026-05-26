@@ -101,4 +101,61 @@ export class ActivityRepository {
       where: { id: reviewId },
     });
   }
+
+  static async countUserWatchLog(userId: string) {
+    return prisma.userEpisodeProgress.count({
+      where: { userId },
+    });
+  }
+
+  static async findUserWatchLog(userId: string, page: number, limit: number) {
+    const skip = (page - 1) * limit;
+    return prisma.userEpisodeProgress.findMany({
+      where: { userId },
+      orderBy: { watchedAt: 'desc' },
+      skip,
+      take: limit,
+      include: {
+        episode: {
+          select: {
+            title: true,
+            episodeNumber: true,
+            season: {
+              select: {
+                seasonNumber: true,
+                series: {
+                  select: { title: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  static async countReviewsBySeries(seriesId: string) {
+    return prisma.review.count({
+      where: { seriesId },
+    });
+  }
+
+  static async findReviewsBySeries(seriesId: string, page: number, limit: number) {
+    const skip = (page - 1) * limit;
+    return prisma.review.findMany({
+      where: { seriesId },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true,
+          },
+        },
+      },
+    });
+  }
 }
