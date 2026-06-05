@@ -95,7 +95,9 @@ Todos los endpoints requieren el token de acceso JWT (`Authenticate Middleware`)
 - **Body:**
   ```json
   {
-    "name": "Mis Tops"
+    "name": "Mis Tops",
+    "description": "Nueva descripción",
+    "is_private": true
   }
   ```
 

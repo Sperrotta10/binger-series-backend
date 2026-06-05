@@ -69,7 +69,7 @@ Para calcular cuántos días seguidos lleva el usuario viendo televisión sin ro
     - *Caso A (Continuidad):* Si ayer hubo actividad, se incrementa la racha: `INCR user:streak:ID_USUARIO`.
     - *Caso B (Ruptura):* Si ayer **no** hubo actividad, la racha se rompió. El backend reinicia el contador: `SET user:streak:ID_USUARIO 1`.
 
-Cuando el usuario pide su perfil (`GET /api/v1/users/me/profile`), el backend lee directamente estos valores de Redis en microsegundos.
+Cuando el usuario pide su perfil (`GET /api/v1/activity/watch/stats`), el backend lee directamente estos valores de Redis en microsegundos.
 
 ---
 
@@ -77,9 +77,14 @@ Cuando el usuario pide su perfil (`GET /api/v1/users/me/profile`), el backend le
 
 Las reseñas en Letterboxd son el pilar de la comunidad. Su lógica debe permitir flexibilidad (reseñar series o temporadas) y proteger a los demás usuarios de textos reveladores.
 
-### Flujo Lógico de Creación (`POST /api/v1/activity/reviews`)
+### Flujo Lógico de Creación
 
-1. **Estructura de la Petición:** El frontend envía `series_id`, `rating` (de 0.5 a 5.0), `content` (texto), `contains_spoilers` (booleano) y opcionalmente `season_id` o `watch_log_id`.
+En lugar de un único endpoint, las reseñas están divididas en tres rutas distintas para mayor precisión en el seguimiento:
+- `POST /api/v1/activity/reviews/series`
+- `POST /api/v1/activity/reviews/seasons`
+- `POST /api/v1/activity/reviews/episodes`
+
+1. **Estructura de la Petición:** El frontend envía el ID correspondiente (`series_id`, y adicionalmente `season_id` y `episode_id` según el endpoint), `rating` (de 0.5 a 5.0), `content` (texto), y `contains_spoilers` (booleano).
 2. **Validación del Rating:** Se verifica que el número sea múltiplo de 0.5 (ej: 4.0, 4.5). Si envía un 4.3, el backend retorna un error `400 Bad Request`.
 3. **Inserción y Sanitización:** El texto de la reseña se limpia de código malicioso (XSS) y se guarda en la tabla `reviews`.
 4. **Impacto en el Frontend (Ocultar Spoilers):**
@@ -94,7 +99,7 @@ La lista de "Series por ver" es una tabla intermedia simple pero requiere un con
 
 ### Flujo Lógico de Alternancia (*Toggle Watchlist*)
 
-En lugar de tener endpoints separados para agregar y eliminar, se utiliza una lógica de **Toggle** (`POST /api/v1/activity/watchlist/toggle`):
+En lugar de tener endpoints separados para agregar y eliminar, se utiliza una lógica de **Toggle** (`POST /api/v1/activity/watch/watchlist`):
 
 1. El backend recibe el `series_id` y el `user_id` del token JWT.
 2. Busca en la tabla `watchlist` si ya existe la combinación `(user_id, series_id)`.
