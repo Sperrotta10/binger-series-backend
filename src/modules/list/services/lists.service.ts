@@ -1,3 +1,4 @@
+import { redis } from '../../../config/redis.js';
 import { AppError } from '../../../middlewares/errorHandler.js';
 import { HttpStatus } from '../../../constants/httpStatus.js';
 import { ErrorCodes } from '../../../constants/errorCodes.js';
@@ -45,6 +46,17 @@ export class ListsService {
   }
 
   static async getListDetail(userId: string, listId: string) {
+    const cacheKey = `list:render:${listId}`;
+    const cachedData = await redis.get(cacheKey);
+
+    if (cachedData) {
+      const parsedData = JSON.parse(cachedData);
+      if (parsedData.is_private && parsedData.user_id !== userId) {
+        throw new AppError('Forbidden', HttpStatus.FORBIDDEN, ErrorCodes.FORBIDDEN);
+      }
+      return parsedData;
+    }
+
     const list = await ListsRepository.findListWithItems(listId);
 
     if (!list) {
@@ -55,7 +67,7 @@ export class ListsService {
       throw new AppError('Forbidden', HttpStatus.FORBIDDEN, ErrorCodes.FORBIDDEN);
     }
 
-    return {
+    const responseData = {
       id: list.id,
       user_id: list.userId,
       name: list.name,
@@ -74,6 +86,10 @@ export class ListsService {
         },
       })),
     };
+
+    await redis.set(cacheKey, JSON.stringify(responseData), 'EX', 86400);
+
+    return responseData;
   }
 
   static async updateListMetadata(userId: string, listId: string, payload: UpdateListPayload) {
@@ -88,6 +104,8 @@ export class ListsService {
     }
 
     const updatedList = await ListsRepository.updateListMetadata(listId, payload);
+
+    await redis.del(`list:render:${listId}`);
 
     return {
       id: updatedList.id,
@@ -111,6 +129,8 @@ export class ListsService {
 
     await ListsRepository.deleteList(listId);
 
+    await redis.del(`list:render:${listId}`);
+
     return { message: 'List deleted successfully' };
   }
 
@@ -126,6 +146,8 @@ export class ListsService {
     }
 
     await ListsRepository.updateListItemsTransaction(listId, items);
+
+    await redis.del(`list:render:${listId}`);
 
     return { message: 'List items updated and reordered successfully.' };
   }
