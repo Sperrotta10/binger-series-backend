@@ -8,14 +8,3 @@ export interface FeedPagination {
   page: number;
   limit: number;
 }
-
-export interface ListPayload {
-  name: string;
-  description?: string;
-  is_private: boolean;
-}
-
-export interface ListItemPayload {
-  series_id: string;
-  position: number;
-}

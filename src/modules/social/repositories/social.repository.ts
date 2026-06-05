@@ -1,5 +1,4 @@
 import { prisma } from '../../../config/database.js';
-import { ListItemPayload, ListPayload } from '../types/social.types.js';
 
 export class SocialRepository {
   static async findUserById(userId: string) {
@@ -131,40 +130,6 @@ export class SocialRepository {
         user: { select: { id: true, username: true, avatarUrl: true } },
         series: { select: { id: true, title: true } },
       },
-    });
-  }
-
-  static async createList(userId: string, payload: ListPayload) {
-    return prisma.list.create({
-      data: {
-        userId,
-        name: payload.name,
-        description: payload.description,
-        isPrivate: payload.is_private,
-      },
-    });
-  }
-
-  static async findListById(listId: string) {
-    return prisma.list.findUnique({ where: { id: listId } });
-  }
-
-  static async updateListItemsTransaction(listId: string, items: ListItemPayload[]) {
-    return prisma.$transaction(async (tx) => {
-      await tx.listItem.deleteMany({
-        where: { listId },
-      });
-
-      if (items && items.length > 0) {
-        const insertData = items.map((item) => ({
-          listId,
-          seriesId: item.series_id,
-          position: item.position,
-        }));
-        await tx.listItem.createMany({
-          data: insertData,
-        });
-      }
     });
   }
 }

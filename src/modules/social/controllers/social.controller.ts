@@ -3,12 +3,9 @@ import { SocialService } from '../services/social.service.js';
 import { ApiResponse } from '../../../utils/apiResponse.js';
 import { catchAsync } from '../../../utils/catchAsync.js';
 import {
-  createListSchema,
   feedPaginationSchema,
-  listIdParamSchema,
   reviewIdParamSchema,
   toggleFollowSchema,
-  updateListItemsSchema,
 } from '../schemas/social.schema.js';
 
 export const toggleFollow = catchAsync(async (req: Request, res: Response) => {
@@ -36,28 +33,5 @@ export const getFeed = catchAsync(async (req: Request, res: Response) => {
     status: 'success',
     pagination: result.pagination,
     data: result.data,
-  });
-});
-
-export const createList = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.user!.id;
-  const payload = createListSchema.parse(req.body);
-
-  const result = await SocialService.createList(userId, payload);
-  return res.status(201).json({
-    status: 'success',
-    data: result,
-  });
-});
-
-export const updateListItems = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.user!.id;
-  const listId = listIdParamSchema.parse(req.params.listId);
-  const { items } = updateListItemsSchema.parse(req.body);
-
-  const result = await SocialService.updateListItems(userId, listId, items);
-  return res.status(200).json({
-    status: 'success',
-    message: result.message,
   });
 });

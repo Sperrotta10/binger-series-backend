@@ -1,12 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../../../middlewares/authenticate.js';
-import {
-  toggleFollow,
-  toggleLike,
-  getFeed,
-  createList,
-  updateListItems,
-} from '../controllers/social.controller.js';
+import { toggleFollow, toggleLike, getFeed } from '../controllers/social.controller.js';
 
 const router: Router = Router();
 
@@ -16,9 +10,5 @@ router.use(authenticate);
 router.post('/follow/toggle', toggleFollow);
 router.post('/reviews/:reviewId/like/toggle', toggleLike);
 router.get('/feed', getFeed);
-
-// List Endpoints
-router.post('/lists', createList);
-router.put('/lists/:listId/items', updateListItems);
 
 export { router as socialRouter };
