@@ -247,7 +247,7 @@ Aquí tienes la extensión técnica con los endpoints **8** y **9** para que los
 
 ---
 
-## 9. PUT `/api/v1/auth/profile/update`
+## 9. PATCH `/api/v1/auth/profile/update`
 **Descripción:** Modifica los datos del perfil del usuario (nombre, nombre de usuario, biografía y avatar). Todos los campos en el body son opcionales para permitir actualizaciones parciales.
 
 * **Headers:** `Authorization: Bearer <accessToken>`

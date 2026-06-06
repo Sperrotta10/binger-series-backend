@@ -28,8 +28,8 @@ model User {
   // Relations
   oauthAccounts  UserOauth[]
   passwordResets PasswordReset[]
-  followers      Follow[]    @relation("following")
-  following      Follow[]    @relation("follower")
+  followers      Follow[]        @relation("following")
+  following      Follow[]        @relation("follower")
   watchLogs      WatchLog[]
   reviews        Review[]
   watchlist      Watchlist[]
@@ -84,17 +84,17 @@ model Follow {
 // ─────────────────────────────────────────────────────────────────
 
 model Series {
-  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  apiSource        String   @default("tvmaze") @map("api_source") @db.VarChar(20)
-  apiId            String?  @unique @map("api_id") @db.VarChar(50)
-  title            String   @db.VarChar(255)
-  originalLanguage String?  @map("original_language") @db.VarChar(10)
-  overview         String?  @db.Text
-  posterUrl        String?  @map("poster_url") @db.Text
-  backdropUrl      String?  @map("backdrop_url") @db.Text
-  status           String?  @db.VarChar(50)
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  apiSource        String    @default("tvmaze") @map("api_source") @db.VarChar(20)
+  apiId            String?   @unique @map("api_id") @db.VarChar(50)
+  title            String    @db.VarChar(255)
+  originalLanguage String?   @map("original_language") @db.VarChar(10)
+  overview         String?   @db.Text
+  posterUrl        String?   @map("poster_url") @db.Text
+  backdropUrl      String?   @map("backdrop_url") @db.Text
+  status           String?   @db.VarChar(50)
   firstAirDate     DateTime? @map("first_air_date") @db.Date
-  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
 
   // Relations
   seasons   Season[]
@@ -107,13 +107,13 @@ model Series {
 }
 
 model Season {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  seriesId     String   @map("series_id") @db.Uuid
-  seasonNumber Int      @map("season_number")
-  title        String?  @db.VarChar(100)
-  overview     String?  @db.Text
-  posterUrl    String?  @map("poster_url") @db.Text
-  episodeCount Int?     @map("episode_count")
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  seriesId     String    @map("series_id") @db.Uuid
+  seasonNumber Int       @map("season_number")
+  title        String?   @db.VarChar(100)
+  overview     String?   @db.Text
+  posterUrl    String?   @map("poster_url") @db.Text
+  episodeCount Int?      @map("episode_count")
   airDate      DateTime? @map("air_date") @db.Date
 
   // Relations
@@ -125,13 +125,13 @@ model Season {
 }
 
 model Episode {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  seasonId      String   @map("season_id") @db.Uuid
-  episodeNumber Int      @map("episode_number")
-  title         String   @db.VarChar(255)
-  overview      String?  @db.Text
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  seasonId      String    @map("season_id") @db.Uuid
+  episodeNumber Int       @map("episode_number")
+  title         String    @db.VarChar(255)
+  overview      String?   @db.Text
   airDate       DateTime? @map("air_date") @db.Date
-  runtime       Int      @default(0)
+  runtime       Int       @default(0)
 
   // Relations
   season    Season     @relation(fields: [seasonId], references: [id], onDelete: Cascade)
@@ -155,8 +155,8 @@ model WatchLog {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   // Relations
-  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  episode Episode   @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  episode Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
   reviews Review[]
 
   // Performance index: user diary calendar and streak calculations
