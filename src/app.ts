@@ -11,6 +11,8 @@ import { authRouter } from './modules/auth/routes/auth.routes.js';
 import { catalogRouter } from './modules/catalog/routes/catalog.routes.js';
 import { ingestionRouter } from './modules/ingestion/routes/ingestion.routes.js';
 import { activityRouter } from './modules/activity/routes/activity.routes.js';
+import { socialRouter } from './modules/social/routes/social.routes.js';
+import { listsRouter } from './modules/list/routes/lists.routes.js';
 
 const app: Express = express();
 
@@ -46,6 +48,8 @@ app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/catalog', catalogRouter);
 app.use('/api/v1/ingestion', ingestionRouter);
 app.use('/api/v1/activity', activityRouter);
+app.use('/api/v1/social', socialRouter);
+app.use('/api/v1/lists', listsRouter);
 
 // 4. Error & 404 Handlers (Must be at the very end)
 app.use(notFoundHandler);

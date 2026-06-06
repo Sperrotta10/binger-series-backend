@@ -61,7 +61,7 @@ Este documento define el contrato estricto de los endpoints para el módulo de A
 
 ---
 
-## 3. GET `/api/v1/activity/stats/me`
+## 3. GET `/api/v1/activity/watch/stats`
 
 **Descripción:** Obtiene las estadísticas de consumo y gamificación del usuario en tiempo real leyendo directamente las estructuras atómicas precalculadas en Redis (`user:stats:ID`).
 
@@ -84,27 +84,60 @@ Este documento define el contrato estricto de los endpoints para el módulo de A
 
 ---
 
-## 4. POST `/api/v1/activity/reviews`
+## 4. POST `/api/v1/activity/reviews/series`
 
-**Descripción:** Crea una reseña pública de una serie o de una temporada específica acompañando una puntuación.
+**Descripción:** Crea una reseña pública para una serie en general acompañando una puntuación.
 
 * **Headers:** `Authorization: Bearer <accessToken>`
-* **Body (Payload):**
+* **Body (Payload):** Zod Schema `seriesReviewSchema`
 
 ```json
 {
   "series_id": "series-uuid-7890",
-  "season_id": null, 
   "rating": 4.5,
-  "content": "El tercer acto de esta temporada es de lo mejor del año. Gran guion.",
-  "contains_spoilers": true
+  "content": "Gran serie, excelente narrativa.",
+  "contains_spoilers": false
 }
-
 ```
 
-*Nota: El parámetro `rating` es un float estricto que acepta valores del 0.5 al 5.0 en incrementos de 0.5. El backend rechazará valores fuera de este rango.*
+*Nota: El parámetro `rating` es un float estricto que acepta valores del 0.5 al 5.0 en incrementos de 0.5.*
 
-* **Respuestas:**
+## 4.1. POST `/api/v1/activity/reviews/seasons`
+
+**Descripción:** Crea una reseña pública para una temporada específica.
+
+* **Headers:** `Authorization: Bearer <accessToken>`
+* **Body (Payload):** Zod Schema `seasonReviewSchema`
+
+```json
+{
+  "series_id": "series-uuid-7890",
+  "season_id": "season-uuid-1234",
+  "rating": 5.0,
+  "content": "La mejor temporada de la serie.",
+  "contains_spoilers": true
+}
+```
+
+## 4.2. POST `/api/v1/activity/reviews/episodes`
+
+**Descripción:** Crea una reseña pública para un episodio en particular.
+
+* **Headers:** `Authorization: Bearer <accessToken>`
+* **Body (Payload):** Zod Schema `episodeReviewSchema`
+
+```json
+{
+  "series_id": "series-uuid-7890",
+  "season_id": "season-uuid-1234",
+  "episode_id": "episode-uuid-5678",
+  "rating": 4.5,
+  "content": "Increíble plot twist.",
+  "contains_spoilers": true
+}
+```
+
+* **Respuestas comunes (POST Reviews):**
 * **`201 Created`:** Reseña publicada.
 ```json
 {
@@ -117,10 +150,8 @@ Este documento define el contrato estricto de los endpoints para el módulo de A
     "created_at": "2026-05-20T19:32:00Z"
   }
 }
-
 ```
-
-* **`400 Bad Request`:** El rating no es múltiplo de 0.5 o el texto supera los límites de caracteres establecidos.
+* **`400 Bad Request`:** Validación Zod fallida (ej: rating no es múltiplo de 0.5).
 
 ---
 
@@ -137,7 +168,7 @@ Este documento define el contrato estricto de los endpoints para el módulo de A
 
 ---
 
-## 6. POST `/api/v1/activity/watchlist/toggle`
+## 6. POST `/api/v1/activity/watch/watchlist`
 
 **Descripción:** Endpoint de tipo *toggle* atómico. Si la serie no está en la Watchlist del usuario, la inserta. Si ya existe la relación, la elimina. Simplifica la reactividad del UI en React Native con una sola llamada.
 
@@ -223,5 +254,35 @@ Este documento define el contrato estricto de los endpoints para el módulo de A
 
 * **`403 Forbidden`:** El token del usuario no coincide con el creador de la reseña (`user_id`).
 * **`404 Not Found`:** La reseña ya no existe o el ID es erróneo.
+
+---
+
+## 9. GET `/api/v1/activity/watch/log`
+
+**Descripción:** Retorna el historial de visualización (Watch Log) del usuario autenticado.
+
+* **Headers:** `Authorization: Bearer <accessToken>`
+* **Respuestas:**
+* **`200 OK`:** Devuelve el historial paginado.
+
+---
+
+## 10. GET `/api/v1/activity/watch/watchlist`
+
+**Descripción:** Devuelve la Watchlist del usuario autenticado, con la lista de series que tiene pendientes por ver.
+
+* **Headers:** `Authorization: Bearer <accessToken>`
+* **Respuestas:**
+* **`200 OK`:** Retorna la lista de seguimiento del usuario.
+
+---
+
+## 11. GET `/api/v1/activity/reviews/series/:seriesId`
+
+**Descripción:** Endpoint helper para obtener de forma pública las reseñas pertenecientes a una serie específica.
+
+* **Params:** `seriesId` (UUIDv4 de la serie).
+* **Respuestas:**
+* **`200 OK`:** Retorna el listado paginado de reseñas de la serie.
 
 ```
