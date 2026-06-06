@@ -59,3 +59,31 @@ export const authenticate = async (
     );
   }
 };
+
+export const optionalAuthenticate = async (
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return next();
+  }
+
+  const token = authHeader.split(' ')[1];
+
+  try {
+    const isBlacklisted = await redis.get(`bl:${token}`);
+    if (isBlacklisted) {
+      return next();
+    }
+
+    const payload = verifyAccessToken(token);
+    req.user = payload;
+  } catch {
+    // Ignore verification errors for optional authentication
+  }
+
+  next();
+};

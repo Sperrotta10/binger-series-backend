@@ -25,6 +25,12 @@ const envSchema = z.object({
   // CORS
   CORS_ORIGIN: z.string().min(1, 'CORS_ORIGIN is required'),
 
+  // Internal Communication Secret
+  INTERNAL_SECRET: z
+    .string()
+    .min(16, 'INTERNAL_SECRET must be at least 16 characters')
+    .default('dev-internal-secret-token-change-me'),
+
   // SMTP Mail Configuration
   SMTP_HOST: z.string().min(1, 'SMTP_HOST is required'),
   SMTP_PORT: z.coerce.number().int().positive().default(587),

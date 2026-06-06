@@ -95,6 +95,7 @@ model Series {
   status           String?   @db.VarChar(50)
   firstAirDate     DateTime? @map("first_air_date") @db.Date
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  genres           String[]  @default([])
 
   // Relations
   seasons   Season[]
