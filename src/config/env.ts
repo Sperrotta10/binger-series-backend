@@ -25,6 +25,13 @@ const envSchema = z.object({
   // CORS
   CORS_ORIGIN: z.string().min(1, 'CORS_ORIGIN is required'),
 
+  // Api Series
+  API_URL_SERIES: z.string().min(1, 'API_URL_SERIES is required'),
+
+  // Gemini API
+  GEMINI_API_KEY: z.string().min(1, 'GEMINI_API_KEY is required'),
+  GEMINI_MODEL: z.string().default('gemini-1.5-flash'),
+
   // Internal Communication Secret
   INTERNAL_SECRET: z
     .string()

@@ -18,6 +18,9 @@ async function bootstrap() {
     await connectDatabase();
     await connectRedis();
 
+    // Initialize workers
+    import('./modules/ingestion/services/worker.service.js');
+
     // Enhance Health Check with DB & Redis status
     app.get('/api/v1/health/full', async (_req, res) => {
       let dbStatus = 'down';
