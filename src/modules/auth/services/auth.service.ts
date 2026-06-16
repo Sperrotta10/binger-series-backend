@@ -19,9 +19,9 @@ import type {
 
 export class AuthService {
   static async registerUser(input: RegisterInput) {
-    // 1. Duplicate check
-    const existingUser = await AuthRepository.findUserByEmail(input.email);
-    if (existingUser) {
+    // 1. Email uniqueness check
+    const existingEmail = await AuthRepository.findUserByEmail(input.email);
+    if (existingEmail) {
       throw new AppError(
         'Email already registered',
         HttpStatus.CONFLICT,
@@ -29,41 +29,27 @@ export class AuthService {
       );
     }
 
-    // 2. Generate unique username from name
-    let baseUsername = input.name
-      .toLowerCase()
-      .replace(/[^a-z0-9_]/g, '')
-      .substring(0, 15);
-
-    if (!baseUsername) {
-      baseUsername = 'user';
-    }
-
-    let username = baseUsername;
-    let counter = 1;
-    let usernameExists = true;
-    while (usernameExists) {
-      const existing = await AuthRepository.findUserByUsername(username);
-      if (existing) {
-        const suffix = counter.toString();
-        username = `${baseUsername.substring(0, 15 - suffix.length)}${suffix}`;
-        counter++;
-      } else {
-        usernameExists = false;
-      }
+    // 2. Username uniqueness check
+    const existingUsername = await AuthRepository.findUserByUsername(input.username);
+    if (existingUsername) {
+      throw new AppError(
+        'Username already taken',
+        HttpStatus.CONFLICT,
+        ErrorCodes.USERNAME_TAKEN,
+      );
     }
 
     // 3. Hash password
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(input.password, salt);
 
-    // 4. Persist (UTC dates rule)
+    // 4. Persist user with explicit username and fullName
     const now = new Date();
     const user = await AuthRepository.createUser({
       email: input.email,
       passwordHash,
-      displayName: input.name,
-      username,
+      username: input.username,
+      fullName: input.fullName,
       createdAt: now,
       updatedAt: now,
     });
@@ -148,13 +134,14 @@ export class AuthService {
       return { user: existingUser, tokens, isNewUser: false };
     }
 
-    // Case C: Brand new user
-    let baseUsername = googlePayload.name
+    // Case C: Brand new Google user — generate a deterministic username from email prefix
+    let baseUsername = googlePayload.email
+      .split('@')[0]
       .toLowerCase()
       .replace(/[^a-z0-9_]/g, '')
-      .substring(0, 15);
+      .substring(0, 25);
 
-    if (!baseUsername) {
+    if (!baseUsername || baseUsername.length < 3) {
       baseUsername = 'user';
     }
 
@@ -165,7 +152,7 @@ export class AuthService {
       const existing = await AuthRepository.findUserByUsername(username);
       if (existing) {
         const suffix = counter.toString();
-        username = `${baseUsername.substring(0, 15 - suffix.length)}${suffix}`;
+        username = `${baseUsername.substring(0, 25 - suffix.length)}${suffix}`;
         counter++;
       } else {
         usernameExists = false;
@@ -175,7 +162,7 @@ export class AuthService {
     const newUser = await AuthRepository.createUser({
       email: googlePayload.email,
       passwordHash: null,
-      displayName: googlePayload.name,
+      fullName: googlePayload.name,
       username,
       avatarUrl: googlePayload.picture ?? null,
       createdAt: now,
@@ -309,7 +296,7 @@ export class AuthService {
     if (input.username) {
       const existing = await AuthRepository.findUserByUsername(input.username);
       if (existing && existing.id !== userId) {
-        throw new AppError('Username is already taken', HttpStatus.CONFLICT, ErrorCodes.CONFLICT);
+        throw new AppError('Username is already taken', HttpStatus.CONFLICT, ErrorCodes.USERNAME_TAKEN);
       }
     }
 
@@ -317,7 +304,7 @@ export class AuthService {
 
     const user = await AuthRepository.updateUserProfile(userId, {
       ...(input.username && { username: input.username }),
-      ...(input.name && { displayName: input.name }),
+      ...(input.fullName && { fullName: input.fullName }),
       ...(input.biography !== undefined && { bio: input.biography }),
       ...(input.avatar_url !== undefined && { avatarUrl: input.avatar_url }),
       updatedAt: now,

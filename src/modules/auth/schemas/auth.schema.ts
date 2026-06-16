@@ -1,6 +1,12 @@
 import { z } from 'zod/v4';
 
 export const registerSchema = z.object({
+  fullName: z.string().min(1, 'Full name is required').max(50),
+  username: z
+    .string()
+    .min(3, 'Username must be at least 3 characters')
+    .max(30, 'Username must be at most 30 characters')
+    .regex(/^[a-z0-9_]+$/, 'Username must be lowercase alphanumeric with underscores only'),
   email: z.string().email(),
   password: z
     .string()
@@ -9,7 +15,6 @@ export const registerSchema = z.object({
       /^(?=.*[a-zA-Z])(?=.*[0-9])/,
       'Password must contain at least one letter and one number',
     ),
-  name: z.string().min(1),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;
@@ -55,10 +60,11 @@ export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export const updateProfileSchema = z.object({
   username: z
     .string()
-    .max(15)
+    .min(3)
+    .max(30)
     .regex(/^[a-z0-9_]+$/, 'Username must be lowercase alphanumeric with underscores only')
     .optional(),
-  name: z.string().min(1).max(50).optional(),
+  fullName: z.string().min(1).max(50).optional(),
   biography: z.string().max(160).optional(),
   avatar_url: z.string().url().optional(),
 });

@@ -21,7 +21,7 @@ const formatUserResponse = (user: {
   id: string;
   email: string;
   username: string;
-  displayName: string | null;
+  fullName: string | null;
   avatarUrl: string | null;
   bio?: string | null;
   createdAt?: Date;
@@ -29,7 +29,7 @@ const formatUserResponse = (user: {
   id: user.id,
   email: user.email,
   username: user.username,
-  name: user.displayName,
+  fullName: user.fullName,
   avatar_url: user.avatarUrl,
 });
 

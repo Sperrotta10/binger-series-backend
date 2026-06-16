@@ -37,7 +37,7 @@ export class AuthRepository {
     userId: string,
     data: {
       username?: string;
-      displayName?: string;
+      fullName?: string;
       bio?: string;
       avatarUrl?: string;
       updatedAt: Date;
