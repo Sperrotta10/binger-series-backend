@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import { expand } from 'dotenv-expand';
 
 // Load .env file before validation
-const myEnv = dotenv.config();
+const myEnv = dotenv.config({ override: true });
 expand(myEnv);
 
 const envSchema = z.object({

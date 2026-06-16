@@ -33,13 +33,32 @@ const formatUserResponse = (user: {
   avatar_url: user.avatarUrl,
 });
 
+const setRefreshTokenCookie = (res: Response, token: string) => {
+  res.cookie('refreshToken', token, {
+    httpOnly: true,
+    secure: env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  });
+};
+
+const clearRefreshTokenCookie = (res: Response) => {
+  res.clearCookie('refreshToken', {
+    httpOnly: true,
+    secure: env.NODE_ENV === 'production',
+    sameSite: 'strict',
+  });
+};
+
 export const register = catchAsync(async (req: Request, res: Response) => {
   const input = registerSchema.parse(req.body);
   const { user, tokens } = await AuthService.registerUser(input);
 
+  setRefreshTokenCookie(res, tokens.refreshToken);
+
   return ApiResponse.success(
     res,
-    { user: formatUserResponse(user), tokens },
+    { user: formatUserResponse(user), tokens: { accessToken: tokens.accessToken } },
     'User registered successfully',
     HttpStatus.CREATED,
   );
@@ -49,7 +68,9 @@ export const login = catchAsync(async (req: Request, res: Response) => {
   const input = loginSchema.parse(req.body);
   const { user, tokens } = await AuthService.loginUser(input);
 
-  return ApiResponse.success(res, { user: formatUserResponse(user), tokens });
+  setRefreshTokenCookie(res, tokens.refreshToken);
+
+  return ApiResponse.success(res, { user: formatUserResponse(user), tokens: { accessToken: tokens.accessToken } });
 });
 
 const googleClient = new OAuth2Client();
@@ -85,20 +106,26 @@ export const googleOauth = catchAsync(async (req: Request, res: Response) => {
     picture: payload.picture,
   });
 
+  setRefreshTokenCookie(res, tokens.refreshToken);
+
   const statusCode = isNewUser ? HttpStatus.CREATED : HttpStatus.OK;
   return ApiResponse.success(
     res,
-    { user: formatUserResponse(user), tokens },
+    { user: formatUserResponse(user), tokens: { accessToken: tokens.accessToken } },
     undefined,
     statusCode,
   );
 });
 
 export const refresh = catchAsync(async (req: Request, res: Response) => {
-  const input = refreshSchema.parse(req.body);
+  // Try to get token from cookie first, fallback to body
+  const tokenFromCookie = req.cookies?.refreshToken;
+  const input = refreshSchema.parse({ refreshToken: tokenFromCookie || req.body.refreshToken });
   const { tokens } = await AuthService.refreshTokens(input);
 
-  return ApiResponse.success(res, { tokens });
+  setRefreshTokenCookie(res, tokens.refreshToken);
+
+  return ApiResponse.success(res, { tokens: { accessToken: tokens.accessToken } });
 });
 
 export const forgotPassword = catchAsync(async (req: Request, res: Response) => {
@@ -137,6 +164,8 @@ export const logout = catchAsync(async (req: Request, res: Response) => {
   const accessToken = req.headers.authorization!.split(' ')[1];
 
   await AuthService.logoutUser(userId, accessToken);
+
+  clearRefreshTokenCookie(res);
 
   return ApiResponse.success(res, undefined, 'Session revoked successfully.');
 });
