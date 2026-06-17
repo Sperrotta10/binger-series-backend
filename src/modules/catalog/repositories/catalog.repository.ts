@@ -114,6 +114,19 @@ export class CatalogRepository {
     });
   }
 
+  static async findManyByApiIds(apiIds: string[]) {
+    return prisma.series.findMany({
+      where: { apiId: { in: apiIds } },
+      include: {
+        reviews: { select: { rating: true } },
+      },
+    });
+  }
+
+  static async countSeries() {
+    return prisma.series.count();
+  }
+
   static async findLatestSeries(excludedIds: string[], take: number) {
     return prisma.series.findMany({
       where: { id: { notIn: excludedIds } },
