@@ -26,6 +26,7 @@ export class ReviewsService {
       rating: data.rating,
       content: data.content,
       containsSpoilers: data.contains_spoilers,
+      scope: data.scope ?? 'SHOW',
     });
     return review;
   }
@@ -47,9 +48,11 @@ export class ReviewsService {
       userId,
       seriesId: data.series_id,
       seasonId: data.season_id,
+      seasonNumber: data.season_number,
       rating: data.rating,
       content: data.content,
       containsSpoilers: data.contains_spoilers,
+      scope: data.scope ?? 'SEASON',
     });
     return review;
   }
@@ -76,10 +79,13 @@ export class ReviewsService {
       seriesId: data.series_id,
       seasonId: data.season_id,
       episodeId: data.episode_id,
+      seasonNumber: data.season_number,
+      episodeNumber: data.episode_number,
       episodeProgressId: progress ? progress.id : null,
       rating: data.rating,
       content: data.content,
       containsSpoilers: data.contains_spoilers,
+      scope: data.scope ?? 'EPISODE',
     });
     return review;
   }
@@ -124,6 +130,9 @@ export class ReviewsService {
         rating: Number(review.rating),
         content: review.content,
         contains_spoilers: review.containsSpoilers,
+        scope: review.scope,
+        season_number: review.seasonNumber,
+        episode_number: review.episodeNumber,
         created_at: review.createdAt,
         updated_at: review.updatedAt,
       })),
