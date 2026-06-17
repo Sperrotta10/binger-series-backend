@@ -38,7 +38,14 @@ export class TrackingRepository {
   static async findProgressByIdWithRuntime(logId: string) {
     return prisma.userEpisodeProgress.findUnique({
       where: { id: logId },
-      include: { episode: { select: { runtime: true } } },
+      include: {
+        episode: {
+          select: {
+            runtime: true,
+            season: { select: { seriesId: true } },
+          },
+        },
+      },
     });
   }
 

@@ -40,7 +40,7 @@ export class TrackingService {
       });
     }
 
-    this._updateWatchStats(userId, episode.runtime, watchedAt).catch((err) => {
+    this._updateWatchStats(userId, episode.season.seriesId, episode.runtime, watchedAt).catch((err) => {
       logger.error({ err, userId }, 'Failed to update user watch stats in background');
     });
 
@@ -65,7 +65,7 @@ export class TrackingService {
 
     await TrackingRepository.deleteProgress(logId);
 
-    this._decrementWatchStats(userId, progress.episode.runtime, progress.watchedAt).catch((err) => {
+    this._decrementWatchStats(userId, progress.episode.season.seriesId, progress.episode.runtime, progress.watchedAt).catch((err) => {
       logger.error({ err, userId }, 'Failed to decrement user watch stats in background');
     });
 
@@ -191,7 +191,7 @@ export class TrackingService {
     };
   }
 
-  private static async _updateWatchStats(userId: string, runtime: number, watchedAt: Date) {
+  private static async _updateWatchStats(userId: string, seriesId: string, runtime: number, watchedAt: Date) {
     const dateStr = watchedAt.toISOString().split('T')[0];
     const yesterday = new Date(watchedAt);
     yesterday.setDate(yesterday.getDate() - 1);
@@ -200,6 +200,7 @@ export class TrackingService {
     const pipeline = redis.pipeline();
     pipeline.incrby(`user:stats:${userId}:total_minutes`, runtime);
     pipeline.hincrby(`user:stats:${userId}:daily_counts`, dateStr, 1);
+    pipeline.zincrby('series:popular:week', 1, seriesId);
     await pipeline.exec();
 
     const todayCountStr = await redis.hget(`user:stats:${userId}:daily_counts`, dateStr);
@@ -217,12 +218,13 @@ export class TrackingService {
     }
   }
 
-  private static async _decrementWatchStats(userId: string, runtime: number, watchedAt: Date) {
+  private static async _decrementWatchStats(userId: string, seriesId: string, runtime: number, watchedAt: Date) {
     const dateStr = watchedAt.toISOString().split('T')[0];
 
     const pipeline = redis.pipeline();
     pipeline.decrby(`user:stats:${userId}:total_minutes`, runtime);
     pipeline.hincrby(`user:stats:${userId}:daily_counts`, dateStr, -1);
+    pipeline.zincrby('series:popular:week', -1, seriesId);
     await pipeline.exec();
   }
 }
