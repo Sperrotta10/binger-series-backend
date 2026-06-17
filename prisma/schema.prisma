@@ -213,18 +213,27 @@ model UserSeriesStatus {
   @@map("user_series_statuses")
 }
 
+enum ReviewScope {
+  SHOW
+  SEASON
+  EPISODE
+}
+
 model Review {
-  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId            String   @map("user_id") @db.Uuid
-  seriesId          String   @map("series_id") @db.Uuid
-  seasonId          String?  @map("season_id") @db.Uuid
-  episodeId         String?  @map("episode_id") @db.Uuid
-  episodeProgressId String?  @map("episode_progress_id") @db.Uuid
-  rating            Decimal? @db.Decimal(2, 1)
-  content           String?  @db.Text
-  containsSpoilers  Boolean  @default(false) @map("contains_spoilers")
-  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  id                String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String      @map("user_id") @db.Uuid
+  seriesId          String      @map("series_id") @db.Uuid
+  seasonId          String?     @map("season_id") @db.Uuid
+  episodeId         String?     @map("episode_id") @db.Uuid
+  episodeProgressId String?     @map("episode_progress_id") @db.Uuid
+  scope             ReviewScope @default(EPISODE)
+  seasonNumber      Int?        @map("season_number")
+  episodeNumber     Int?        @map("episode_number")
+  rating            Decimal?    @db.Decimal(2, 1)
+  content           String?     @db.Text
+  containsSpoilers  Boolean     @default(false) @map("contains_spoilers")
+  createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations
   user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
