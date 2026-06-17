@@ -33,21 +33,20 @@ const formatUserResponse = (user: {
   avatar_url: user.avatarUrl,
 });
 
+const refreshCookieOptions = {
+  httpOnly: true,
+  secure: env.NODE_ENV === 'production',
+  sameSite: env.NODE_ENV === 'production' ? ('strict' as const) : ('lax' as const),
+  path: '/',
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+};
+
 const setRefreshTokenCookie = (res: Response, token: string) => {
-  res.cookie('refreshToken', token, {
-    httpOnly: true,
-    secure: env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-  });
+  res.cookie('refreshToken', token, refreshCookieOptions);
 };
 
 const clearRefreshTokenCookie = (res: Response) => {
-  res.clearCookie('refreshToken', {
-    httpOnly: true,
-    secure: env.NODE_ENV === 'production',
-    sameSite: 'strict',
-  });
+  res.clearCookie('refreshToken', refreshCookieOptions);
 };
 
 export const register = catchAsync(async (req: Request, res: Response) => {
@@ -118,9 +117,19 @@ export const googleOauth = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const refresh = catchAsync(async (req: Request, res: Response) => {
-  // Try to get token from cookie first, fallback to body
   const tokenFromCookie = req.cookies?.refreshToken;
-  const input = refreshSchema.parse({ refreshToken: tokenFromCookie || req.body.refreshToken });
+  const tokenFromBody = req.body?.refreshToken;
+  const refreshToken = tokenFromCookie || tokenFromBody;
+
+  if (!refreshToken) {
+    throw new AppError(
+      'Refresh token is required',
+      HttpStatus.UNAUTHORIZED,
+      ErrorCodes.UNAUTHORIZED,
+    );
+  }
+
+  const input = refreshSchema.parse({ refreshToken });
   const { tokens } = await AuthService.refreshTokens(input);
 
   setRefreshTokenCookie(res, tokens.refreshToken);
